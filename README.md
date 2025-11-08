@@ -1,0 +1,302 @@
+# Handwritten Form OCR Application
+
+A powerful web application that performs OCR (Optical Character Recognition) on handwritten forms using Google's Gemini 2.5 Flash model. Specifically designed to extract text from filled forms with rough or poorly-written handwriting.
+
+## Features
+
+- 📄 **PDF Upload**: Upload multi-page PDF documents
+- 🖼️ **Page-by-Page Processing**: Each PDF page is converted to an image and processed in a separate API call
+- 🔄 **Individual API Calls**: Each page = one API call (10 pages = 10 API calls)
+- 🤖 **AI-Powered OCR**: Uses Gemini 2.5 Flash for accurate handwriting recognition
+- ✅ **Form Structure Preservation**: Maintains the exact layout and structure of forms
+- ✓ **Checkbox Detection**: Recognizes ticked checkboxes and malformed tick marks
+- ❌ **Slash Detection**: Intelligently excludes sections that are crossed out
+- 🎨 **Beautiful UI**: Clean, modern, and responsive interface built with React and TypeScript
+
+## Technology Stack
+
+### Backend
+- **Python 3.8+**
+- **FastAPI**: Modern web framework for building APIs
+- **pdf2image**: PDF to image conversion
+- **Pillow**: Image processing
+- **google-generativeai**: Gemini API integration
+
+### Frontend
+- **React 18**: UI framework
+- **TypeScript**: Type-safe JavaScript
+- **Vite**: Fast build tool and dev server
+- **Axios**: HTTP client
+
+## Prerequisites
+
+1. **Python 3.8 or higher**
+2. **Node.js 16 or higher**
+3. **Poppler** (for PDF conversion):
+   - **Windows**: Download from [here](https://github.com/oschwartz10612/poppler-windows/releases/) and add to PATH
+   - **macOS**: `brew install poppler`
+   - **Linux**: `sudo apt-get install poppler-utils`
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+cd "C:\Users\Abhijit\OneDrive - iitkgp.ac.in\Desktop\AI_Planet\Engish_OCR"
+```
+
+### 2. Backend Setup
+
+```bash
+# Navigate to backend directory
+cd backend
+
+# Create virtual environment (recommended)
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+# source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 3. Frontend Setup
+
+```bash
+# Navigate to frontend directory (from root)
+cd frontend
+
+# Install dependencies
+npm install
+```
+
+### 4. Environment Configuration
+
+The `.env` file is already created in the root directory with your Gemini API key:
+```
+GEMINI_API_KEY=AIzaSyAkLJqQFeNxRcNYMQVUa4nAbSGXdefwrYI
+```
+
+## Running the Application
+
+### Start Backend Server
+
+```bash
+# From backend directory
+cd backend
+python main.py
+```
+
+The backend will start at `http://localhost:8000`
+
+### Start Frontend Development Server
+
+```bash
+# From frontend directory (in a new terminal)
+cd frontend
+npm run dev
+```
+
+The frontend will start at `http://localhost:3000` (or another port if 3000 is busy)
+
+## Usage
+
+1. **Open the application** in your browser (usually `http://localhost:3000`)
+2. **Upload a PDF** by dragging and dropping or clicking to browse
+3. **Click "Extract Text"** to start the OCR process
+4. **View results** - each page's extracted text will be displayed in order
+
+## How It Works
+
+### OCR Prompt Engineering
+
+The application uses a sophisticated prompt that instructs Gemini to:
+
+1. **Handle Poor Handwriting**: Recognize rough, unclear handwriting from less-educated individuals
+2. **Preserve Form Structure**: Maintain exact layout, spacing, and hierarchy
+3. **Detect Tick Marks**: Identify checkboxes and tick marks (even malformed ones)
+4. **Exclude Slashed Sections**: Skip content that's been crossed out
+5. **Distinguish Ticks from Slashes**: Carefully differentiate between selection marks and exclusion marks
+
+### Processing Pipeline
+
+```
+PDF Upload → PDF to Images → For Each Page: ONE API Call → Gemini 2.5 Flash → OCR Text → Display Results
+```
+
+**Important**: If your PDF has 10 pages, the system makes **10 separate API calls** to Gemini (one per page). This ensures optimal processing and error isolation.
+
+## API Endpoints
+
+### `POST /ocr`
+Upload a PDF file for OCR processing. Each page is processed with a separate API call.
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Body: PDF file
+
+**Response:**
+```json
+{
+  "total_pages": 10,
+  "api_calls_made": 10,
+  "results": [
+    {
+      "page_number": 1,
+      "ocr_text": "Extracted text...",
+      "status": "success"
+    }
+  ]
+}
+```
+
+**Note**: For a 10-page PDF, this endpoint makes 10 individual API calls to Gemini (one per page).
+
+### `GET /health`
+Health check endpoint.
+
+### `GET /`
+API information.
+
+## Project Structure
+
+```
+Engish_OCR/
+├── backend/
+│   ├── main.py              # FastAPI server
+│   └── requirements.txt     # Python dependencies
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx         # Main React component
+│   │   ├── App.css         # Styles
+│   │   ├── main.tsx        # React entry point
+│   │   └── index.css       # Global styles
+│   ├── index.html          # HTML template
+│   ├── package.json        # Node dependencies
+│   ├── tsconfig.json       # TypeScript config
+│   └── vite.config.ts      # Vite config
+├── .env                    # Environment variables
+└── README.md               # This file
+```
+
+## Troubleshooting
+
+### Poppler Not Found
+If you get an error about `poppler` not being installed:
+- **Windows**: Download Poppler from [here](https://github.com/oschwartz10612/poppler-windows/releases/), extract it, and add the `bin` folder to your system PATH
+- **macOS**: `brew install poppler`
+- **Linux**: `sudo apt-get install poppler-utils`
+
+### CORS Errors
+Make sure both backend and frontend are running on the correct ports and the CORS middleware is properly configured.
+
+### API Key Issues
+Verify that the Gemini API key in `.env` is correct and has not expired.
+
+## Important Notes
+
+- The application uses **Gemini 2.5 Flash** model for optimal performance (latest version)
+- **Each PDF page = ONE API call**: A 10-page PDF makes 10 separate Gemini API calls
+- Large PDFs may take longer to process (approx. 2-5 seconds per page)
+- The quality of OCR depends on image quality and handwriting clarity
+- Make sure you have sufficient API quota for Gemini
+- Monitor your API usage: Each page consumes one API call
+
+## License
+
+This project is for educational and development purposes.
+
+## Deployment
+
+### Backend Deployment (Render)
+
+1. **Push your code to GitHub** (if not already done)
+
+2. **Sign up/Login to Render** at https://render.com
+
+3. **Create a new Web Service:**
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository: `https://github.com/abhijit-aiplanet/English_OCR`
+   - Configure the service:
+     * **Name:** `english-ocr-backend` (or your preferred name)
+     * **Runtime:** Python 3
+     * **Build Command:** `pip install -r backend/requirements.txt`
+     * **Start Command:** `cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT`
+     * **Instance Type:** Free (or your preferred tier)
+
+4. **Add Environment Variables** in Render Dashboard:
+   - `GEMINI_API_KEY`: Your Gemini API key
+   - `ALLOWED_ORIGINS`: Your Vercel frontend URL (e.g., `https://your-app.vercel.app`)
+   
+5. **Deploy!** Render will automatically build and deploy your backend.
+
+6. **Note your backend URL:** `https://english-ocr-backend.onrender.com` (or your chosen name)
+
+### Frontend Deployment (Vercel)
+
+1. **Sign up/Login to Vercel** at https://vercel.com
+
+2. **Import your GitHub repository:**
+   - Click "Add New..." → "Project"
+   - Import `https://github.com/abhijit-aiplanet/English_OCR`
+
+3. **Configure the project:**
+   - **Framework Preset:** Vite
+   - **Root Directory:** `frontend`
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+
+4. **Add Environment Variables:**
+   - `VITE_API_URL`: Your Render backend URL (e.g., `https://english-ocr-backend.onrender.com`)
+
+5. **Deploy!** Vercel will build and deploy your frontend.
+
+6. **Update Backend CORS:**
+   - Go back to Render
+   - Update `ALLOWED_ORIGINS` environment variable to include your Vercel URL:
+     ```
+     https://your-app.vercel.app
+     ```
+   - Redeploy the backend
+
+### Post-Deployment
+
+Your app is now live! 🎉
+
+- **Frontend:** `https://your-app.vercel.app`
+- **Backend:** `https://english-ocr-backend.onrender.com`
+
+**Important Notes:**
+- Render's free tier may spin down after inactivity (takes ~30 seconds to wake up)
+- Monitor your Gemini API usage to stay within quota
+- For production use, consider upgrading to paid tiers for better performance
+
+## Environment Variables
+
+### Backend (`backend/.env` or Render Environment Variables)
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+ALLOWED_ORIGINS=https://your-vercel-app.vercel.app,http://localhost:3000,http://localhost:5173
+```
+
+### Frontend (`frontend/.env` or Vercel Environment Variables)
+
+```env
+VITE_API_URL=https://your-backend.onrender.com
+```
+
+**For local development:** Copy `backend/env.template` to `backend/.env` and `frontend/env.template` to `frontend/.env`, then fill in your values.
+
+## Support
+
+For issues or questions, please check the error messages in the console and ensure all dependencies are properly installed.
+
+## GitHub Repository
+
+https://github.com/abhijit-aiplanet/English_OCR
+
