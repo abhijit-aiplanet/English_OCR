@@ -9,7 +9,9 @@ sys.path.insert(0, str(backend_dir))
 # Import the FastAPI app from main.py
 from main import app
 
+# Import Mangum to wrap FastAPI for serverless
+from mangum import Mangum
+
 # This is the handler that Vercel will call
-# Vercel automatically wraps FastAPI apps with ASGI
-handler = app
+handler = Mangum(app)
 
