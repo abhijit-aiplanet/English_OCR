@@ -34,13 +34,15 @@ function App() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0]
-      if (selectedFile.type === 'application/pdf') {
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/tiff', 'image/webp']
+      
+      if (validTypes.includes(selectedFile.type) || selectedFile.name.match(/\.(pdf|jpg|jpeg|png|gif|bmp|tiff|webp)$/i)) {
         setFile(selectedFile)
         setError('')
         setStreamingState(null)
         setCurrentPageIndex(0)
       } else {
-        setError('Please upload a PDF file')
+        setError('Please upload a PDF or image file (JPG, PNG, etc.)')
         setFile(null)
       }
     }
@@ -63,13 +65,15 @@ function App() {
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0]
-      if (droppedFile.type === 'application/pdf') {
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/tiff', 'image/webp']
+      
+      if (validTypes.includes(droppedFile.type) || droppedFile.name.match(/\.(pdf|jpg|jpeg|png|gif|bmp|tiff|webp)$/i)) {
         setFile(droppedFile)
         setError('')
         setStreamingState(null)
         setCurrentPageIndex(0)
       } else {
-        setError('Please upload a PDF file')
+        setError('Please upload a PDF or image file (JPG, PNG, etc.)')
         setFile(null)
       }
     }
@@ -77,7 +81,7 @@ function App() {
 
   const handleSubmit = async () => {
     if (!file) {
-      setError('Please select a PDF file')
+      setError('Please select a file')
       return
     }
 
@@ -242,7 +246,7 @@ function App() {
       <div className="container">
         <header className="header">
           <h1>📄 Handwritten Form OCR</h1>
-          <p>Upload your PDF and extract handwritten text with AI</p>
+          <p>Upload your PDF or image and extract handwritten text with AI</p>
         </header>
 
         {!hasResults ? (
@@ -258,7 +262,7 @@ function App() {
               <input
                 id="file-input"
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp,image/*"
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
               />
@@ -276,8 +280,8 @@ function App() {
                   <svg className="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
-                  <p className="upload-text">Drag & drop your PDF here</p>
-                  <p className="upload-subtext">or click to browse</p>
+                  <p className="upload-text">Drag & drop your PDF or image here</p>
+                  <p className="upload-subtext">Supports: PDF, JPG, PNG, and more</p>
                 </div>
               )}
             </div>
@@ -351,7 +355,7 @@ function App() {
                   Download Markdown
                 </button>
                 <button className="button button-secondary" onClick={handleReset} disabled={loading}>
-                  Upload New PDF
+                  Upload New File
                 </button>
               </div>
             </div>

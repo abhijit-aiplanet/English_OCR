@@ -216,6 +216,35 @@ def convert_pdf_to_images(pdf_bytes: bytes) -> List[Image.Image]:
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error converting PDF to images: {str(e)}")
 
+def process_uploaded_file(file_bytes: bytes, filename: str) -> List[Image.Image]:
+    """
+    Process uploaded file (PDF or image) and return a list of PIL Images.
+    For PDFs: converts each page to an image
+    For images: returns a single-item list with the image
+    """
+    file_ext = filename.lower().split('.')[-1]
+    
+    # Check if it's an image file
+    if file_ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp']:
+        try:
+            image = Image.open(io.BytesIO(file_bytes))
+            # Convert to RGB if necessary (some formats like PNG can have alpha channel)
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            return [image]
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error processing image: {str(e)}")
+    
+    # Check if it's a PDF
+    elif file_ext == 'pdf':
+        return convert_pdf_to_images(file_bytes)
+    
+    else:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Unsupported file type: .{file_ext}. Please upload a PDF or image file (JPG, PNG, etc.)"
+        )
+
 def image_to_base64(image: Image.Image) -> str:
     """
     Convert PIL Image to base64 string.
@@ -273,14 +302,14 @@ async def process_image_with_gemini(image: Image.Image, page_number: int) -> str
 async def root():
     return {"message": "Handwritten Form OCR API", "status": "running"}
 
-async def process_pdf_streaming(pdf_bytes: bytes):
+async def process_file_streaming(file_bytes: bytes, filename: str):
     """
-    Generator function that processes PDF pages and yields results in real-time.
+    Generator function that processes file (PDF/image) and yields results in real-time.
     Each page result is sent immediately as it's processed WITH the page image.
     """
     try:
-        # Convert PDF to images (one image per page)
-        images = convert_pdf_to_images(pdf_bytes)
+        # Convert file to images (PDF pages or single image)
+        images = process_uploaded_file(file_bytes, filename)
         
         # Send initial metadata
         yield f"data: {json.dumps({'type': 'metadata', 'total_pages': len(images)})}\n\n"
@@ -335,17 +364,18 @@ async def process_pdf_streaming(pdf_bytes: bytes):
     except Exception as e:
         error_data = {
             "type": "error",
-            "message": f"Error processing PDF: {str(e)}"
+            "message": f"Error processing file: {str(e)}"
         }
         yield f"data: {json.dumps(error_data)}\n\n"
 
 @app.post("/ocr/stream")
 async def perform_ocr_streaming(file: UploadFile = File(...)):
     """
-    Process uploaded PDF and STREAM OCR results for each page in real-time.
+    Process uploaded file (PDF or image) and STREAM OCR results in real-time.
     Uses Server-Sent Events (SSE) to send results as they're processed.
-    IMPORTANT: Each page is sent as a SEPARATE API call to Gemini.
-    For a 10-page PDF, this makes 10 individual API calls (1 page per call).
+    IMPORTANT: Each page/image is sent as a SEPARATE API call to Gemini.
+    
+    Supported formats: PDF, JPG, JPEG, PNG, GIF, BMP, TIFF, WEBP
     
     Event Types:
     - metadata: Initial data with total_pages
@@ -355,14 +385,20 @@ async def perform_ocr_streaming(file: UploadFile = File(...)):
     - error: If an error occurs
     """
     # Validate file type
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp']
+    file_ext = file.filename.lower().split('.')[-1]
     
-    # Read PDF bytes
-    pdf_bytes = await file.read()
+    if file_ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Unsupported file type. Allowed: {', '.join(allowed_extensions)}"
+        )
+    
+    # Read file bytes
+    file_bytes = await file.read()
     
     return StreamingResponse(
-        process_pdf_streaming(pdf_bytes),
+        process_file_streaming(file_bytes, file.filename),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -374,39 +410,45 @@ async def perform_ocr_streaming(file: UploadFile = File(...)):
 @app.post("/ocr")
 async def perform_ocr(file: UploadFile = File(...)):
     """
-    Process uploaded PDF and return OCR results for each page (non-streaming version).
-    IMPORTANT: Each page is sent as a SEPARATE API call to Gemini.
-    For a 10-page PDF, this makes 10 individual API calls (1 page per call).
+    Process uploaded file (PDF or image) and return OCR results (non-streaming version).
+    IMPORTANT: Each page/image is sent as a SEPARATE API call to Gemini.
+    
+    Supported formats: PDF, JPG, JPEG, PNG, GIF, BMP, TIFF, WEBP
     
     Note: Use /ocr/stream for real-time results as pages are processed.
     """
     # Validate file type
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp']
+    file_ext = file.filename.lower().split('.')[-1]
+    
+    if file_ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Unsupported file type. Allowed: {', '.join(allowed_extensions)}"
+        )
     
     try:
-        # Read PDF bytes
-        pdf_bytes = await file.read()
+        # Read file bytes
+        file_bytes = await file.read()
         
-        # Convert PDF to images (one image per page)
-        images = convert_pdf_to_images(pdf_bytes)
+        # Convert file to images (PDF pages or single image)
+        images = process_uploaded_file(file_bytes, file.filename)
         
         # Process each page individually with separate API calls
         results = []
         for idx, image in enumerate(images, 1):
             try:
-                # IMPORTANT: This makes ONE API call per page
-                # For 10 pages = 10 separate API calls
-                print(f"Processing page {idx}/{len(images)} with individual API call...")
+                # IMPORTANT: This makes ONE API call per page/image
+                print(f"Processing image {idx}/{len(images)} with individual API call...")
                 ocr_text = await process_image_with_gemini(image, idx)
                 results.append({
                     "page_number": idx,
                     "ocr_text": ocr_text,
                     "status": "success"
                 })
-                print(f"Successfully processed page {idx}/{len(images)}")
+                print(f"Successfully processed image {idx}/{len(images)}")
             except Exception as e:
-                print(f"Error processing page {idx}: {str(e)}")
+                print(f"Error processing image {idx}: {str(e)}")
                 results.append({
                     "page_number": idx,
                     "ocr_text": "",
@@ -421,7 +463,7 @@ async def perform_ocr(file: UploadFile = File(...)):
         })
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
 @app.get("/health")
 async def health_check():
