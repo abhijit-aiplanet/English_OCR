@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 import json
 import asyncio
-from pdf2image import convert_from_bytes
+import fitz  # PyMuPDF
 from PIL import Image
 from google import genai
 from google.genai import types
@@ -198,10 +198,20 @@ Begin OCR: Think about document type first (Step 0), then extract in clean MARKD
 
 def convert_pdf_to_images(pdf_bytes: bytes) -> List[Image.Image]:
     """
-    Convert PDF bytes to a list of PIL Images.
+    Convert PDF bytes to a list of PIL Images using PyMuPDF.
+    PyMuPDF works better on serverless environments like Vercel.
     """
     try:
-        images = convert_from_bytes(pdf_bytes, dpi=300)
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        images = []
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            # Render page at 300 DPI (scale factor = 300/72 = 4.166...)
+            pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72))
+            # Convert to PIL Image
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            images.append(img)
+        doc.close()
         return images
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error converting PDF to images: {str(e)}")
