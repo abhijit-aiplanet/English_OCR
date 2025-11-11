@@ -212,82 +212,71 @@ This project is for educational and development purposes.
 
 ## Deployment
 
-### Backend Deployment (Render)
+### Recommended: Deploy to Vercel (Both Frontend & Backend)
 
-1. **Push your code to GitHub** (if not already done)
+The easiest way to deploy this application is to use Vercel for both the frontend and backend. This provides:
+- ✅ Single platform deployment
+- ✅ Automatic HTTPS and CDN
+- ✅ Easy environment variable management
+- ✅ Fast deployment and updates
 
-2. **Sign up/Login to Render** at https://render.com
+**See [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) for detailed instructions.**
 
-3. **Create a new Web Service:**
-   - Click "New +" → "Web Service"
-   - Connect your GitHub repository: `https://github.com/abhijit-aiplanet/English_OCR`
-   - Configure the service:
-     * **Name:** `english-ocr-backend` (or your preferred name)
-     * **Runtime:** Python 3
-     * **Build Command:** `pip install -r backend/requirements.txt`
-     * **Start Command:** `cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT`
-     * **Instance Type:** Free (or your preferred tier)
+**Quick Steps:**
 
-4. **Add Environment Variables** in Render Dashboard:
-   - `GEMINI_API_KEY`: Your Gemini API key
-   - `ALLOWED_ORIGINS`: Your Vercel frontend URL (e.g., `https://your-app.vercel.app`)
-   
-5. **Deploy!** Render will automatically build and deploy your backend.
+1. **Push code to GitHub**
+   ```bash
+   git add .
+   git commit -m "Deploy to Vercel"
+   git push origin main
+   ```
 
-6. **Note your backend URL:** `https://english-ocr-backend.onrender.com` (or your chosen name)
-
-### Frontend Deployment (Vercel)
-
-1. **Sign up/Login to Vercel** at https://vercel.com
-
-2. **Import your GitHub repository:**
+2. **Import to Vercel**
+   - Go to https://vercel.com
    - Click "Add New..." → "Project"
-   - Import `https://github.com/abhijit-aiplanet/English_OCR`
+   - Import your GitHub repository
+   - Vercel auto-detects configuration from `vercel.json`
 
-3. **Configure the project:**
-   - **Framework Preset:** Vite
-   - **Root Directory:** `frontend`
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `dist`
+3. **Add Environment Variable**
+   - In Vercel project settings → Environment Variables
+   - Add: `GEMINI_API_KEY` = your API key
 
-4. **Add Environment Variables:**
-   - `VITE_API_URL`: Your Render backend URL (e.g., `https://english-ocr-backend.onrender.com`)
+4. **Deploy!**
+   - Click Deploy
+   - Your app will be live at `https://your-project.vercel.app`
 
-5. **Deploy!** Vercel will build and deploy your frontend.
+### Alternative: Deploy Backend to Render (Legacy)
 
-6. **Update Backend CORS:**
-   - Go back to Render
-   - Update `ALLOWED_ORIGINS` environment variable to include your Vercel URL:
-     ```
-     https://your-app.vercel.app
-     ```
-   - Redeploy the backend
+If you prefer to use Render for the backend, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
 
-### Post-Deployment
-
-Your app is now live! 🎉
-
-- **Frontend:** `https://your-app.vercel.app`
-- **Backend:** `https://english-ocr-backend.onrender.com`
-
-**Important Notes:**
-- Render's free tier may spin down after inactivity (takes ~30 seconds to wake up)
-- Monitor your Gemini API usage to stay within quota
-- For production use, consider upgrading to paid tiers for better performance
+**Quick overview:**
+- Backend on Render: Use the `backend/` directory with `render.yaml`
+- Frontend on Vercel: Use the `frontend/` directory
+- Set `VITE_API_URL` in Vercel to point to your Render backend URL
 
 ## Environment Variables
 
-### Backend (`backend/.env` or Render Environment Variables)
+### For Vercel Deployment
 
+**Backend (Vercel Environment Variables):**
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
-ALLOWED_ORIGINS=https://your-vercel-app.vercel.app,http://localhost:3000,http://localhost:5173
 ```
 
-### Frontend (`frontend/.env` or Vercel Environment Variables)
+**Frontend:**
+No environment variables needed when deployed to Vercel (uses relative paths).
 
+### For Local Development
+
+**Backend (`backend/.env`):**
 ```env
-VITE_API_URL=https://your-backend.onrender.com
+GEMINI_API_KEY=your_gemini_api_key_here
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+```
+
+**Frontend (`frontend/.env`):**
+```env
+VITE_API_URL=http://localhost:8000
 ```
 
 **For local development:** Copy `backend/env.template` to `backend/.env` and `frontend/env.template` to `frontend/.env`, then fill in your values.
